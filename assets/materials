@@ -1,0 +1,5 @@
+#name,image,pos_x,pos_y,n_x,n_y,is_walkable
+grass,assets/tileset.png,0,0,4,4,1
+dirt,assets/tileset.png,128,0,4,4,1
+stone,assets/tileset.png,256,0,4,4,1
+wall,assets/tileset.png,384,0,4,4,0

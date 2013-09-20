@@ -1,0 +1,4 @@
+#name,image,is_playable,base_start,base_size,pos_x,pos_y,strength,dexterity,constitution,intelligence,wisdom,charisma
+Garret,assets/players/elf_m_ranger.png,1,1,2,1,2,18,17,10,13,12,11
+Ayra,assets/players/eladrin_f_fighter.png,1,2,2,3,5,17,18,13,12,11,10
+NPC,assets/players/elf_f_druid.png,0,0,2,5,7,12,14,12,18,17,15
