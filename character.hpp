@@ -21,10 +21,11 @@ typedef struct {
   std::string name;
   size_t image;
   bool is_playable;
-  size_t base_start;
-  size_t base_size;
+  int base_start;
+  int base_size;
   statistics stats;
   position pos;
+  int move_limit;
 } character;
 
 #endif // CHARACTER_HPP

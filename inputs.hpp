@@ -4,12 +4,33 @@
 #include <SDL/SDL.h>
 #include "game.hpp"
 
-inline bool process_input(const SDL_Event& e, Game& g) {
-  static size_t player = 0;
-
+inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
   switch (e.type) {
   case SDL_QUIT:
     return false;
+    break;
+
+  case SDL_KEYDOWN:
+    switch (e.key.keysym.sym) {
+    case SDLK_j:
+      if (d.is_edit_mode) {
+        ++d.random_obstacles;
+        if (d.random_obstacles > 80) {
+          d.random_obstacles = 80;
+        }
+      }
+      break;
+    case SDLK_k:
+      if (d.is_edit_mode) {
+        --d.random_obstacles;
+        if (d.random_obstacles < 20) {
+          d.random_obstacles = 20;
+        }
+      }
+      break;
+    default:
+      break;
+    }
     break;
 
   case SDL_KEYUP:
@@ -17,29 +38,72 @@ inline bool process_input(const SDL_Event& e, Game& g) {
     case SDLK_ESCAPE:
       return false;
       break;
-    case SDLK_F1:
+    case SDLK_TAB:
+      d.is_edit_mode ^= true;
+      g.set_focus();
       break;
     case SDLK_RETURN:
       break;
     case SDLK_SPACE:
-      ++player;
-      if (player >= g.characters.size()) {
-        player = 0;
+      if (!d.is_edit_mode) {
+        g.end_turn();
       }
       break;
     case SDLK_LSHIFT: case SDLK_RSHIFT:
       break;
-    case SDLK_w:
-      --g.characters[player].pos.y;
+    case SDLK_w: case SDLK_UP:
+      if (d.is_edit_mode) {
+        --g.focus_y;
+      } else {
+        g.move_up();
+      }
       break;
-    case SDLK_a:
-      --g.characters[player].pos.x;
+    case SDLK_a: case SDLK_LEFT:
+      if (d.is_edit_mode) {
+        --g.focus_x;
+      } else {
+        g.move_left();
+      }
       break;
-    case SDLK_s:
-      ++g.characters[player].pos.y;
+    case SDLK_s: case SDLK_DOWN:
+      if (d.is_edit_mode) {
+        ++g.focus_y;
+      } else {
+        g.move_down();
+      }
       break;
-    case SDLK_d:
-      ++g.characters[player].pos.x;
+    case SDLK_d: case SDLK_RIGHT:
+      if (d.is_edit_mode) {
+        ++g.focus_x;
+      } else {
+        g.move_right();
+      }
+      break;
+    case SDLK_1:
+      if (d.is_edit_mode) {
+        g.map[g.focus_y][g.focus_x] = 0;
+      }
+      break;
+    case SDLK_2:
+      if (d.is_edit_mode) {
+        g.map[g.focus_y][g.focus_x] = 1;
+      }
+      break;
+    case SDLK_3:
+      if (d.is_edit_mode) {
+        g.map[g.focus_y][g.focus_x] = 2;
+      }
+      break;
+    case SDLK_4:
+      if (d.is_edit_mode) {
+        g.map[g.focus_y][g.focus_x] = 3;
+      }
+      break;
+    case SDLK_r:
+      d.randomize_map(g);
+      break;
+    case SDLK_t:
+      d.random_seed = rand();
       break;
     default:
       break;

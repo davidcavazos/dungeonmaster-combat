@@ -7,8 +7,8 @@
 
 using namespace std;
 
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 1024;
+const int SCREEN_HEIGHT = 768;
 
 const int FRAME_CAP = 60;
 const int FRAME_CAP_MS = 1000 / FRAME_CAP;

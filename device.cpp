@@ -2,6 +2,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
+#include <algorithm>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
@@ -14,11 +16,11 @@ using namespace std;
 
 const int SCREEN_DEPTH = 32;
 
-const int TILE_SIZE = 32;
+const int TILE_SIZE = 64;
 
 const Uint32 SDL_INIT_FLAGS = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
 
-const char* FONT = "assets/fonts/DejaVuSans.ttf";
+const char* FONT = "assets/fonts/DejaVuSansMono.ttf";
 const int FONT_SIZE = 18;
 const SDL_Color FONT_COLOR = {0xcc, 0xcc, 0xcc, 0xff};
 
@@ -30,7 +32,7 @@ const Uint8 BG_B = 0x08;
 const Uint8 BG_A = 0xff;
 const SDL_Color BG_COLOR = {BG_R, BG_G, BG_B, BG_A};
 
-//#define PLAY_MUSIC
+#define PLAY_MUSIC
 const char* MUSIC_FILE = "assets/audio/df_music.ogg";
 const int AUDIO_FREQUENCY = 44100;
 const int AUDIO_CHANNELS = 2; // stereo
@@ -41,7 +43,15 @@ SDL_Renderer* g_renderer;
 TTF_Font* g_font;
 Mix_Music* g_music;
 
+const Game* g_game;
+bool character_posy_comp(size_t i, size_t j) {
+  return g_game->characters[i].pos.y < g_game->characters[j].pos.y;
+}
+
 Device::Device(const int screen_w, const int screen_h) {
+  is_edit_mode = false;
+  random_obstacles = 20;
+  random_seed = time(0);
   _width = screen_w;
   _height = screen_h;
 
@@ -79,7 +89,7 @@ Device::Device(const int screen_w, const int screen_h) {
   }
 
   puts("Creating window");
-  g_win = SDL_CreateWindow("Dungeon Master by David Cavazos", 500, 100,
+  g_win = SDL_CreateWindow("Dungeon Master by David Cavazos", 300, 20,
                           _width, _height, SDL_WINDOW_SHOWN);
   if (g_win == NULL) {
     fprintf(stderr, "%s\n", SDL_GetError());
@@ -153,7 +163,7 @@ bool Device::process_events(Game& game) {
   bool is_running = true;
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
-    is_running &= process_input(event, game);
+    is_running &= process_input(event, *this, game);
   }
   return is_running;
 }
@@ -204,13 +214,15 @@ void Device::draw_text(int x, int y, const string& text) {
     _textures.push_back(tex);
   }
   SDL_Rect dest;
-  SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h);
   dest.x = x;
   dest.y = y;
+  SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h);
   SDL_RenderCopy(g_renderer, tex, NULL, &dest);
 }
 
 void Device::draw_game(const Game& g) {
+  g_game = &g;
+
   srand(42);
   SDL_Rect src, dest;
   src.w = TILE_SIZE;
@@ -220,13 +232,13 @@ void Device::draw_game(const Game& g) {
 
   // draw map
   for (size_t y = 0; y < g.map.size(); ++y) {
-    for (size_t x = 0; x < g.map[y].size(); ++x) {
+    for (size_t x = 0; x < g.map[0].size(); ++x) {
       size_t m = g.map[y][x];
       const material& mat = g.materials[m];
       src.x = mat.pos_x + (rand() % mat.n_x) * TILE_SIZE;
       src.y = mat.pos_y + (rand() % mat.n_y) * TILE_SIZE;
-      dest.x = int(x - g.focus_x) * TILE_SIZE + _width / 2;
-      dest.y = int(y - g.focus_y) * TILE_SIZE + (_height - TILE_SIZE) / 2;
+      dest.x = pos_x(g, x);
+      dest.y = pos_y(g, y);
       SDL_RenderCopy(g_renderer, _textures[mat.image], &src, &dest);
     }
   }
@@ -240,16 +252,100 @@ void Device::draw_game(const Game& g) {
   }
 
   // draw characters
-  for (size_t i = 0; i < g.characters.size(); ++i) {
-    const character& ch = g.characters[i];
+  SDL_Color color;
+  vector<size_t> sorted(g.characters.size());
+  for (size_t i = 0; i < sorted.size(); ++i) {
+    sorted[i] = i;
+  }
+  sort(sorted.begin(), sorted.end(), character_posy_comp);
+  for (size_t i = 0; i < sorted.size(); ++i) {
+    const character& ch = g.characters[sorted[i]];
+    if (ch.is_playable) {
+      color = {0,255,255,255};
+    } else {
+      color = {255,0,0,255};
+    }
     SDL_Texture* tex = _textures[ch.image];
     SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h);
-    dest.x = ch.pos.x * TILE_SIZE;
-    dest.y = ch.pos.y * TILE_SIZE;
+    dest.x = pos_x(g, ch.pos.x);
+    dest.y = pos_y(g, ch.pos.y);
+    draw_rect(dest.x, dest.y, (TILE_SIZE - 1) * ch.base_size,
+              (TILE_SIZE - 1) * ch.base_size, color);
+    dest.x = dest.x - ch.base_start;
+    dest.y = dest.y - dest.h + TILE_SIZE - 2;
     SDL_RenderCopy(g_renderer, tex, NULL, &dest);
+  }
+
+  // draw info
+  if (is_edit_mode) {
+    draw_text(10,   5, "Mode: Edit");
+    draw_text(10,  25, "[W,A,S,D]  Move");
+    draw_text(10,  85, "[1]        Grass");
+    draw_text(10, 105, "[2]        Dirt");
+    draw_text(10, 125, "[3]        Stone");
+    draw_text(10, 145, "[4]        Wall");
+    draw_text(10, 165, "[R]        Randomize (" + to_string(random_obstacles) +
+              "% obstacles)");
+    draw_text(10, 185, "[J]        Increase obstacles %");
+    draw_text(10, 205, "[K]        Decrease obstacles %");
+    draw_text(10, 225, "[T]        Randomize seed");
+  } else {
+    draw_text(400,   5, g.characters[g.turns[0]].name);
+    draw_text(10,   5, "Mode: Battle");
+    draw_text(10,  25, "[W,A,S,D]  Moves: " + to_string(g.move_limit));
+    draw_text(10,  85, "[SPC]      End Turn");
+  }
+  draw_text(10, 45, "[ESC]      Exit");
+  draw_text(10, 65, "[TAB]      Toggle Edit Mode");
+
+  // edit mode
+  if (is_edit_mode) {
+    draw_rect(pos_x(g, g.focus_x), pos_y(g, g.focus_y), TILE_SIZE - 1,
+              TILE_SIZE - 1, {255,255,0,255});
   }
 }
 
 void Device::render() {
   SDL_RenderPresent(g_renderer);
+}
+
+void Device::randomize_map(Game& g) {
+  float total = g.map[0].size() * g.map.size();
+  int obstacles = total * random_obstacles * 0.01;
+  size_t x, y;
+
+  srand(clock());
+  // clear map
+  for (y = 0; y < g.map.size(); ++y) {
+    for (x = 0; x < g.map[0].size(); ++x) {
+      int temp = rand() % 10;
+      if (temp < 5) {
+        g.map[y][x] = 0;
+      } else if (temp < 9) {
+        g.map[y][x] = 1;
+      } else {
+        g.map[y][x] = 2;
+      }
+    }
+  }
+
+  // place obstacles
+  srand(random_seed);
+  for (int i = 0; i < obstacles; ++i) {
+    do {
+      x = rand() % g.map[0].size();
+      y = rand() % g.map.size();
+    } while (g.map[y][x] == 3);
+    g.map[y][x] = 3;
+  }
+}
+
+
+
+int Device::pos_x(const Game& g, int x) {
+  return (x - g.focus_x) * TILE_SIZE + _width / 2;
+}
+
+int Device::pos_y(const Game& g, int y) {
+  return (y - g.focus_y) * TILE_SIZE + _height / 2;
 }

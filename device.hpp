@@ -10,6 +10,10 @@ class Game;
 
 class Device {
 public:
+  bool is_edit_mode;
+  int random_obstacles;
+  int random_seed;
+
   Device(const int screen_w, const int screen_h);
   ~Device();
 
@@ -25,6 +29,7 @@ public:
   void draw_text(int x, int y, const std::string& text);
   void draw_game(const Game& g);
   void render();
+  void randomize_map(Game& g);
 
 private:
   int _width;
@@ -32,6 +37,9 @@ private:
   std::vector<SDL_Texture*> _textures;
   std::map<std::string,size_t> _textures_idx;
   std::map<std::string,size_t> _texts_idx;
+
+  int pos_x(const Game& g, int x);
+  int pos_y(const Game& g, int y);
 };
 
 #endif // DEVICE_HPP
