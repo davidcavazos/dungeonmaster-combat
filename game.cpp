@@ -101,6 +101,7 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
 
   set_focus();
   move_limit = characters[turns[0]].move_limit;
+  diag_moves = 0;
 }
 
 void Game::set_focus() {
@@ -114,6 +115,7 @@ void Game::end_turn() {
   turns.back() = temp;
   set_focus();
   move_limit = characters[turns[0]].move_limit;
+  diag_moves = 0;
 }
 
 void Game::move_up() {
@@ -156,6 +158,62 @@ void Game::move_right() {
       materials[map[ch.pos.y][ch.pos.x+1]].is_walkable) {
     --move_limit;
     ++ch.pos.x;
+    set_focus();
+  }
+}
+
+void Game::move_right_up() {
+  character& ch = characters[turns[0]];
+  int moves = diag_moves++ % 2 + 1;
+  if (move_limit >= moves &&
+      ch.pos.x < int(map[0].size()) - 1 &&
+      ch.pos.y > 0 &&
+      materials[map[ch.pos.y-1][ch.pos.x+1]].is_walkable) {
+    move_limit -= moves;
+    ++ch.pos.x;
+    --ch.pos.y;
+    set_focus();
+  }
+}
+
+void Game::move_left_up() {
+  character& ch = characters[turns[0]];
+  int moves = diag_moves++ % 2 + 1;
+  if (move_limit >= moves &&
+      ch.pos.x > 0 &&
+      ch.pos.y > 0 &&
+      materials[map[ch.pos.y-1][ch.pos.x-1]].is_walkable) {
+    move_limit -= moves;
+    --ch.pos.x;
+    --ch.pos.y;
+    set_focus();
+  }
+}
+
+void Game::move_right_down() {
+  character& ch = characters[turns[0]];
+  int moves = diag_moves++ % 2 + 1;
+  if (move_limit >= moves &&
+      ch.pos.x < int(map[0].size()) - 1 &&
+      ch.pos.y < int(map.size()) - 1 &&
+      materials[map[ch.pos.y+1][ch.pos.x+1]].is_walkable) {
+    move_limit -= moves;
+    ++ch.pos.x;
+    ++ch.pos.y;
+    set_focus();
+  }
+}
+
+void Game::move_left_down() {
+  character& ch = characters[turns[0]];
+  int moves = diag_moves++ % 2 + 1;
+  if (move_limit >= moves &&
+      ch.pos.x > 0 &&
+      ch.pos.y < int(map.size()) - 1 &&
+      materials[map[ch.pos.y+1][ch.pos.x-1]].is_walkable) {
+    move_limit -= moves;
+    --ch.pos.x;
+    ++ch.pos.y;
     set_focus();
   }
 }

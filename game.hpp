@@ -12,6 +12,7 @@ public:
   int focus_x;
   int focus_y;
   int move_limit;
+  int diag_moves;
   std::vector<material> materials;
   std::vector<std::vector<size_t> > map;
   std::vector<character> characters;
@@ -25,6 +26,10 @@ public:
   void move_down();
   void move_left();
   void move_right();
+  void move_left_up();
+  void move_right_up();
+  void move_left_down();
+  void move_right_down();
 };
 
 #endif // GAME_HPP

@@ -51,6 +51,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       break;
     case SDLK_LSHIFT: case SDLK_RSHIFT:
       break;
+    // normal movements
     case SDLK_w: case SDLK_UP:
       if (d.is_edit_mode) {
         --g.focus_y;
@@ -65,7 +66,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         g.move_left();
       }
       break;
-    case SDLK_s: case SDLK_DOWN:
+    case SDLK_s: case SDLK_x: case SDLK_DOWN:
       if (d.is_edit_mode) {
         ++g.focus_y;
       } else {
@@ -79,6 +80,40 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         g.move_right();
       }
       break;
+    // diagonal movements
+    case SDLK_q:
+      if (d.is_edit_mode) {
+        --g.focus_x;
+        --g.focus_y;
+      } else {
+        g.move_left_up();
+      }
+      break;
+    case SDLK_e:
+      if (d.is_edit_mode) {
+        ++g.focus_x;
+        --g.focus_y;
+      } else {
+        g.move_right_up();
+      }
+      break;
+    case SDLK_z:
+      if (d.is_edit_mode) {
+        --g.focus_x;
+        ++g.focus_y;
+      } else {
+        g.move_left_down();
+      }
+      break;
+    case SDLK_c:
+      if (d.is_edit_mode) {
+        ++g.focus_x;
+        ++g.focus_y;
+      } else {
+        g.move_right_down();
+      }
+      break;
+    // other keys
     case SDLK_1:
       if (d.is_edit_mode) {
         g.map[g.focus_y][g.focus_x] = 0;
@@ -100,10 +135,14 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       }
       break;
     case SDLK_r:
-      d.randomize_map(g);
+      if (d.is_edit_mode) {
+        d.randomize_map(g);
+      }
       break;
     case SDLK_t:
-      d.random_seed = rand();
+      if (d.is_edit_mode) {
+        d.random_seed = rand();
+      }
       break;
     default:
       break;
