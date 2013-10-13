@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (dungeonmaster)
 
 set (VERSION_MAJOR 0)
-set (VERSION_MINOR 1)
+set (VERSION_MINOR 2)
 configure_file (
   "${PROJECT_SOURCE_DIR}/config.hpp.in"
   "${PROJECT_SOURCE_DIR}/config.hpp"

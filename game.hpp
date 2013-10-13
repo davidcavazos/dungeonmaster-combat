@@ -20,6 +20,7 @@ public:
 
   Game(Device& dev, const std::string& mat_file, const std::string& map_file,
        const std::string& ch_file);
+  void load_map(const std::string& file);
   void set_focus();
   void end_turn();
   void move_up();

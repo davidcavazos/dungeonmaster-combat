@@ -13,6 +13,8 @@ const int SCREEN_HEIGHT = 768;
 const int FRAME_CAP = 60;
 const int FRAME_CAP_MS = 1000 / FRAME_CAP;
 
+const int AI_UPDATE = 10; // in frames
+
 const string MATERIALS_FILENAME = "assets/materials";
 const string MAP_FILENAME = "assets/map1";
 const string CHARACTERS_FILENAME = "assets/characters";
@@ -23,7 +25,7 @@ int main(int, char**) {
   puts("Music from: Dwarf Fortress");
 
   Device dev(SCREEN_WIDTH, SCREEN_HEIGHT);
-  Game game(dev, MATERIALS_FILENAME, MAP_FILENAME, CHARACTERS_FILENAME);
+  Game g(dev, MATERIALS_FILENAME, MAP_FILENAME, CHARACTERS_FILENAME);
 
   puts("Running game loop");
   char buffer[64];
@@ -34,10 +36,16 @@ int main(int, char**) {
     start_time = dev.get_time();
     dev.clear_screen();
 
-    is_running = dev.process_events(game);
+    is_running = dev.process_events(g);
+
+    // process AI
+    static int ai_frame = 0;
+    if (!g.characters[g.turns[0]].is_playable && ai_frame++ >= AI_UPDATE) {
+      ai_frame = 0;
+    }
 
     // draw to screen
-    dev.draw_game(game);
+    dev.draw_game(g);
 
     // control framerate
     delta_time = dev.get_time() - start_time;
