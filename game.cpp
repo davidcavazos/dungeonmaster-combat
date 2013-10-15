@@ -59,6 +59,7 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
     ch.pos.y = atoi(strtok(NULL, DELIM));
     ch.hp = atoi(strtok(NULL, DELIM));
     ch.hp_max = atoi(strtok(NULL, DELIM));
+    ch.armor_class = atoi(strtok(NULL, DELIM));
     ch.stats.strength = atoi(strtok(NULL, DELIM));
     ch.stats.dexterity = atoi(strtok(NULL, DELIM));
     ch.stats.constitution = atoi(strtok(NULL, DELIM));
@@ -96,14 +97,14 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
     if (buffer[0] == '#') { // comment
       continue;
     }
-    static int count = 0;
-    ch.name = strtok(buffer, DELIM) + to_string(++count);
+    ch.name = strtok(buffer, DELIM);
     ch.image = dev.load_image(strtok(NULL, DELIM));
     ch.is_playable = atoi(strtok(NULL, DELIM));
     ch.base_start = atof(strtok(NULL, DELIM));
     ch.base_size = atoi(strtok(NULL, DELIM));
     ch.hp = atoi(strtok(NULL, DELIM));
     ch.hp_max = atoi(strtok(NULL, DELIM));
+    ch.armor_class = atoi(strtok(NULL, DELIM));
     ch.stats.strength = atoi(strtok(NULL, DELIM));
     ch.stats.dexterity = atoi(strtok(NULL, DELIM));
     ch.stats.constitution = atoi(strtok(NULL, DELIM));
@@ -155,8 +156,10 @@ void Game::load_map(const string& file) {
 }
 
 character Game::generate_enemy(size_t idx, int x, int y) {
+  static int count = 0;
   character ch;
   ch = enemies[idx];
+  ch.name += to_string(++count);
   ch.pos.x = x;
   ch.pos.y = y;
   return ch;
@@ -381,10 +384,18 @@ void Game::attack(size_t i) {
     att_mod = 4;
   }
   srand(clock());
-  ch2.hp -= rand() % ch1.damage + att_mod;
+  if (rand() % 20 + ch1.attack_bonus < ch2.armor_class) {
+    printf("%s's attack missed\n", ch1.name.c_str());
+    return;
+  }
+  int damage = rand() % ch1.damage + att_mod;
+  ch2.hp -= damage;
+  printf("%s attacked %s for %d damage\n", ch1.name.c_str(), ch2.name.c_str(),
+         damage);
 
   // if character attacked has no more HP, remove it
   if (ch2.hp <= 0) {
+    printf("%s died\n", ch2.name.c_str());
     characters.erase(characters.begin() + i);
     for (size_t j = 0; j < turns.size(); ++j) {
       if (turns[j] == i) {

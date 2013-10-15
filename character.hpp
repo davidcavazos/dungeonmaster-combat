@@ -25,6 +25,7 @@ typedef struct {
   int base_size;
   int hp;
   int hp_max;
+  int armor_class;
   statistics stats;
   position pos;
   int move_limit;
