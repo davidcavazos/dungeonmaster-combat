@@ -1,5 +1,6 @@
 #include "device.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -32,7 +33,7 @@ const Uint8 BG_B = 0x08;
 const Uint8 BG_A = 0xff;
 const SDL_Color BG_COLOR = {BG_R, BG_G, BG_B, BG_A};
 
-//#define PLAY_MUSIC
+#define PLAY_MUSIC
 const char* MUSIC_FILE = "assets/audio/df_music.ogg";
 const int AUDIO_FREQUENCY = 44100;
 const int AUDIO_CHANNELS = 2; // stereo
@@ -229,8 +230,10 @@ void Device::draw_game(const Game& g) {
   src.h = TILE_SIZE;
   dest.w = TILE_SIZE;
   dest.h = TILE_SIZE;
+  const int SQR = TILE_SIZE - 1;
 
   // draw map
+  const character& ch1 = g.characters[g.turns[0]];
   for (size_t y = 0; y < g.map.size(); ++y) {
     for (size_t x = 0; x < g.map[0].size(); ++x) {
       size_t m = g.map[y][x];
@@ -240,6 +243,17 @@ void Device::draw_game(const Game& g) {
       dest.x = pos_x(g, x);
       dest.y = pos_y(g, y);
       SDL_RenderCopy(g_renderer, _textures[mat.image], &src, &dest);
+
+      // draw attack range
+      if (is_edit_mode) {
+        continue;
+      }
+      double dist_x = abs(double(ch1.pos.x) - x);
+      double dist_y = abs(double(ch1.pos.y) - y);
+      int dist = pow(dist_x * dist_x + dist_y * dist_y, 0.5) + 0.5;
+      if (g.materials[g.map[y][x]].is_walkable && dist <= ch1.range) {
+        draw_rect(dest.x, dest.y, SQR, SQR, {255,255,0,255});
+      }
     }
   }
 
@@ -274,12 +288,35 @@ void Device::draw_game(const Game& g) {
     dest.x = dest.x - ch.base_start;
     dest.y = dest.y - dest.h + TILE_SIZE - 2;
     SDL_RenderCopy(g_renderer, tex, NULL, &dest);
+
+    // draw HP bar
+    const int BARH = 7; // health bar height
+    dest.x = pos_x(g, ch.pos.x) + 1;
+    dest.y = pos_y(g, ch.pos.y) + TILE_SIZE + 1;
+    int bar_len = TILE_SIZE - 3;
+    float perc = double(ch.hp) / ch.hp_max;
+    draw_rect(dest.x, dest.y, bar_len, BARH, {0,0,0,255});
+
+    ++dest.x;
+    ++dest.y;
+    bar_len = perc * (TILE_SIZE - 5);
+    if (perc > 1.0f / 2.0f) {
+      color = {0,255,0,255};
+    } else {
+      color = {255,255,0,255};
+    }
+    draw_fill_rect(dest.x, dest.y, bar_len, BARH - 2, color);
+    draw_fill_rect(dest.x + bar_len, dest.y, TILE_SIZE - bar_len - 5, BARH - 2,
+                   {255,0,0,255});
   }
 
   // draw info
+  draw_text(10, 45, "[ESC]      Exit");
+  draw_text(10, 65, "[TAB]      Toggle Edit Mode");
   if (is_edit_mode) {
     draw_text(10,   5, "Mode: Edit");
     draw_text(10,  25, "[W,A,S,D]  Move");
+
     draw_text(10,  85, "[1]        Grass");
     draw_text(10, 105, "[2]        Dirt");
     draw_text(10, 125, "[3]        Stone");
@@ -289,14 +326,19 @@ void Device::draw_game(const Game& g) {
     draw_text(10, 185, "[J]        Increase obstacles %");
     draw_text(10, 205, "[K]        Decrease obstacles %");
     draw_text(10, 225, "[T]        Randomize seed");
+    draw_text(10, 245, "[M]        Read map from file");
+    draw_text(10, 265, "[0]        Place Kibus");
+    draw_text(10, 285, "[9]        Toggle Ghast");
   } else {
-    draw_text(400,   5, g.characters[g.turns[0]].name);
+    const character& ch = g.characters[g.turns[0]];
+    draw_text(400,  5, ch.name);
+    draw_text(400, 25, "HP: " + to_string(ch.hp) + "/" + to_string(ch.hp_max));
     draw_text(10,   5, "Mode: Battle");
-    draw_text(10,  25, "[W,A,S,D]  Moves: " + to_string(g.move_limit));
+    draw_text(10,  25, "[W,A,S,D,Q,E,Z,C]  Moves: " + to_string(g.move_limit));
+
     draw_text(10,  85, "[SPC]      End Turn");
+    draw_text(10, 105, "[RET]      Attack");
   }
-  draw_text(10, 45, "[ESC]      Exit");
-  draw_text(10, 65, "[TAB]      Toggle Edit Mode");
 
   // edit mode
   if (is_edit_mode) {

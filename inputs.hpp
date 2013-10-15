@@ -1,6 +1,8 @@
 #ifndef INPUTS_HPP
 #define INPUTS_HPP
 
+#include <iostream>
+#include <string>
 #include <SDL/SDL.h>
 #include "game.hpp"
 
@@ -36,47 +38,57 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
   case SDL_KEYUP:
     switch (e.key.keysym.sym) {
     case SDLK_ESCAPE:
-      return false;
+      if (d.is_edit_mode) {
+        d.is_edit_mode = false;
+      } else {
+        return false;
+      }
       break;
     case SDLK_TAB:
       d.is_edit_mode ^= true;
       g.set_focus();
       break;
     case SDLK_RETURN:
+      if (!d.is_edit_mode && g.characters[g.turns[0]].is_playable) {
+        std::vector<size_t> list = g.attack_range();
+        if (!list.empty()) {
+          srand(clock());
+          g.attack(list[rand() % list.size()]);
+          g.end_turn();
+        }
+      }
       break;
     case SDLK_SPACE:
       if (!d.is_edit_mode) {
         g.end_turn();
       }
       break;
-    case SDLK_LSHIFT: case SDLK_RSHIFT:
-      break;
     // normal movements
     case SDLK_w: case SDLK_UP:
       if (d.is_edit_mode) {
         --g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_up();
       }
       break;
     case SDLK_a: case SDLK_LEFT:
       if (d.is_edit_mode) {
         --g.focus_x;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_left();
       }
       break;
     case SDLK_s: case SDLK_x: case SDLK_DOWN:
       if (d.is_edit_mode) {
         ++g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_down();
       }
       break;
     case SDLK_d: case SDLK_RIGHT:
       if (d.is_edit_mode) {
         ++g.focus_x;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_right();
       }
       break;
@@ -85,7 +97,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       if (d.is_edit_mode) {
         --g.focus_x;
         --g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_left_up();
       }
       break;
@@ -93,7 +105,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       if (d.is_edit_mode) {
         ++g.focus_x;
         --g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_right_up();
       }
       break;
@@ -101,7 +113,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       if (d.is_edit_mode) {
         --g.focus_x;
         ++g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_left_down();
       }
       break;
@@ -109,7 +121,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       if (d.is_edit_mode) {
         ++g.focus_x;
         ++g.focus_y;
-      } else {
+      } else if (g.characters[g.turns[0]].is_playable) {
         g.move_right_down();
       }
       break;
@@ -134,6 +146,28 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         g.map[g.focus_y][g.focus_x] = 3;
       }
       break;
+    case SDLK_0:
+      if (d.is_edit_mode && g.map[g.focus_y][g.focus_x] != 3) {
+        g.characters[0].pos.x = g.focus_x;
+        g.characters[0].pos.y = g.focus_y;
+      }
+      break;
+    case SDLK_9:
+      if (d.is_edit_mode && g.map[g.focus_y][g.focus_x] != 3) {
+        bool found = false;
+        for (size_t i = 0; i < g.characters.size(); ++i) {
+          const character& ch = g.characters[i];
+          if (ch.pos.x == g.focus_x && ch.pos.y == g.focus_y) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          g.turns.push_back(g.characters.size());
+          g.characters.push_back(g.generate_enemy(0, g.focus_x, g.focus_y));
+        }
+      }
+      break;
     case SDLK_r:
       if (d.is_edit_mode) {
         d.randomize_map(g);
@@ -142,6 +176,14 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
     case SDLK_t:
       if (d.is_edit_mode) {
         d.random_seed = rand();
+      }
+      break;
+    case SDLK_m:
+      if (d.is_edit_mode) {
+        std::string file;
+        std::cout << "Map file: ";
+        std::cin >> file;
+        g.load_map("assets/" + file);
       }
       break;
     default:

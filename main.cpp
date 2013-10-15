@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "device.hpp"
 #include "game.hpp"
+#include "ai.hpp"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ const int FRAME_CAP_MS = 1000 / FRAME_CAP;
 const string MATERIALS_FILENAME = "assets/materials";
 const string MAP_FILENAME = "assets/map1";
 const string CHARACTERS_FILENAME = "assets/characters";
+const string ENEMIES_FILENAME = "assets/enemies";
 
 int main(int, char**) {
   printf("Dungeon Master v%d.%d\n", VERSION_MAJOR, VERSION_MINOR);
@@ -23,7 +25,8 @@ int main(int, char**) {
   puts("Music from: Dwarf Fortress");
 
   Device dev(SCREEN_WIDTH, SCREEN_HEIGHT);
-  Game game(dev, MATERIALS_FILENAME, MAP_FILENAME, CHARACTERS_FILENAME);
+  Game g(dev, MATERIALS_FILENAME, MAP_FILENAME, CHARACTERS_FILENAME,
+         ENEMIES_FILENAME);
 
   puts("Running game loop");
   char buffer[64];
@@ -34,10 +37,13 @@ int main(int, char**) {
     start_time = dev.get_time();
     dev.clear_screen();
 
-    is_running = dev.process_events(game);
+    // game logic
+    is_running = dev.process_events(g);
+    if (!dev.is_edit_mode) {
+      process_ai(g);
+    }
 
-    // draw to screen
-    dev.draw_game(game);
+    dev.draw_game(g);
 
     // control framerate
     delta_time = dev.get_time() - start_time;

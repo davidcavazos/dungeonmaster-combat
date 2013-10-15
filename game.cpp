@@ -1,5 +1,6 @@
 #include "game.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include "device.hpp"
@@ -10,7 +11,7 @@ using namespace std;
 const char* DELIM = ", \t";
 
 Game::Game(Device& dev, const string& mat_file, const string& map_file,
-           const string& ch_file) {
+           const string& ch_file, const string& en_file) {
   FILE* f;
   char buffer[1024];
 
@@ -36,33 +37,7 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
   }
   fclose(f);
 
-  char* tok;
-  puts("Reading map");
-  f = fopen(map_file.c_str(), "r");
-  if (f == NULL) {
-    fprintf(stderr, "Error opening file: %s\n", map_file.c_str());
-    exit(EXIT_FAILURE);
-  }
-  // read first row and determine number of columns
-  fgets(buffer, sizeof(buffer), f);
-  map.resize(1);
-  tok = strtok(buffer, DELIM);
-  while (tok != NULL) {
-    map[0].push_back(atoi(tok));
-    tok = strtok(NULL, DELIM);
-  }
-
-  // read rest of map, incomplete information will be filled with material 0
-  while (fgets(buffer, sizeof(buffer), f) != NULL) {
-    map.resize(map.size() + 1);
-    map.back().resize(map[0].size());
-    tok = strtok(buffer, DELIM);
-    for (size_t i = 0; i < map[0].size() && tok != NULL; ++i) {
-      map.back()[i] = atoi(tok);
-      tok = strtok(NULL, DELIM);
-    }
-  }
-  fclose(f);
+  load_map(map_file);
 
   puts("Reading characters");
   character ch;
@@ -82,6 +57,8 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
     ch.base_size = atoi(strtok(NULL, DELIM));
     ch.pos.x = atoi(strtok(NULL, DELIM));
     ch.pos.y = atoi(strtok(NULL, DELIM));
+    ch.hp = atoi(strtok(NULL, DELIM));
+    ch.hp_max = atoi(strtok(NULL, DELIM));
     ch.stats.strength = atoi(strtok(NULL, DELIM));
     ch.stats.dexterity = atoi(strtok(NULL, DELIM));
     ch.stats.constitution = atoi(strtok(NULL, DELIM));
@@ -89,6 +66,11 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
     ch.stats.wisdom = atoi(strtok(NULL, DELIM));
     ch.stats.charisma = atoi(strtok(NULL, DELIM));
     ch.move_limit = atoi(strtok(NULL, DELIM));
+    ch.attack_bonus = atoi(strtok(NULL, DELIM));
+    ch.critical = atoi(strtok(NULL, DELIM));
+    ch.range = atoi(strtok(NULL, DELIM));
+    ch.ammo = atoi(strtok(NULL, DELIM));
+    ch.damage = atoi(strtok(NULL, DELIM));
     characters.push_back(ch);
   }
   fclose(f);
@@ -99,26 +81,116 @@ Game::Game(Device& dev, const string& mat_file, const string& map_file,
     turns[i] = i;
   }
 
-  set_focus();
+  focus_x = characters[turns[0]].pos.x;
+  focus_y = characters[turns[0]].pos.y;
   move_limit = characters[turns[0]].move_limit;
   diag_moves = 0;
+
+  puts("Reading enemies");
+  f = fopen(en_file.c_str(), "r");
+  if (f == NULL) {
+    fprintf(stderr, "Error opening file: %s\n", en_file.c_str());
+    exit(EXIT_FAILURE);
+  }
+  while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    if (buffer[0] == '#') { // comment
+      continue;
+    }
+    static int count = 0;
+    ch.name = strtok(buffer, DELIM) + to_string(++count);
+    ch.image = dev.load_image(strtok(NULL, DELIM));
+    ch.is_playable = atoi(strtok(NULL, DELIM));
+    ch.base_start = atof(strtok(NULL, DELIM));
+    ch.base_size = atoi(strtok(NULL, DELIM));
+    ch.hp = atoi(strtok(NULL, DELIM));
+    ch.hp_max = atoi(strtok(NULL, DELIM));
+    ch.stats.strength = atoi(strtok(NULL, DELIM));
+    ch.stats.dexterity = atoi(strtok(NULL, DELIM));
+    ch.stats.constitution = atoi(strtok(NULL, DELIM));
+    ch.stats.intelligence = atoi(strtok(NULL, DELIM));
+    ch.stats.wisdom = atoi(strtok(NULL, DELIM));
+    ch.stats.charisma = atoi(strtok(NULL, DELIM));
+    ch.move_limit = atoi(strtok(NULL, DELIM));
+    ch.attack_bonus = atoi(strtok(NULL, DELIM));
+    ch.critical = atoi(strtok(NULL, DELIM));
+    ch.range = atoi(strtok(NULL, DELIM));
+    ch.ammo = atoi(strtok(NULL, DELIM));
+    ch.damage = atoi(strtok(NULL, DELIM));
+    enemies.push_back(ch);
+  }
+  fclose(f);
+}
+
+void Game::load_map(const string& file) {
+  char buffer[1024];
+  char* tok;
+
+  puts("Reading map");
+  FILE* f = fopen(file.c_str(), "r");
+  if (f == NULL) {
+    fprintf(stderr, "Error opening file: %s\n", file.c_str());
+    return;
+  }
+  // read first row and determine number of columns
+  fgets(buffer, sizeof(buffer), f);
+  map.resize(1);
+  map[0].resize(0);
+  tok = strtok(buffer, DELIM);
+  while (tok != NULL) {
+    map[0].push_back(atoi(tok));
+    tok = strtok(NULL, DELIM);
+  }
+
+  // read rest of map, incomplete information will be filled with material 0
+  while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    map.resize(map.size() + 1);
+    map.back().resize(map[0].size());
+    tok = strtok(buffer, DELIM);
+    for (size_t i = 0; i < map[0].size() && tok != NULL; ++i) {
+      map.back()[i] = atoi(tok);
+      tok = strtok(NULL, DELIM);
+    }
+  }
+  fclose(f);
+}
+
+character Game::generate_enemy(size_t idx, int x, int y) {
+  character ch;
+  ch = enemies[idx];
+  ch.pos.x = x;
+  ch.pos.y = y;
+  return ch;
 }
 
 void Game::set_focus() {
-  focus_x = characters[turns[0]].pos.x;
-  focus_y = characters[turns[0]].pos.y;
+  const int DIST = 1;
+  int x = characters[turns[0]].pos.x;
+  int y = characters[turns[0]].pos.y;
+
+  if (x - focus_x > DIST) {
+    focus_x = x - DIST;
+  } else if (focus_x - x > DIST) {
+    focus_x = x + DIST;
+  }
+
+  if (y - focus_y > DIST) {
+    focus_y = y - DIST;
+  } else if (focus_y - y > DIST) {
+    focus_y = y + DIST;
+  }
 }
 
 void Game::end_turn() {
   size_t temp = turns[0];
   memmove(&turns[0], &turns[1], (turns.size() - 1) * sizeof(turns[0]));
   turns.back() = temp;
-  set_focus();
+  focus_x = characters[turns[0]].pos.x;
+  focus_y = characters[turns[0]].pos.y;
   move_limit = characters[turns[0]].move_limit;
   diag_moves = 0;
 }
 
-void Game::move_up() {
+bool Game::move_up() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.y > 0 &&
@@ -126,10 +198,12 @@ void Game::move_up() {
     --move_limit;
     --ch.pos.y;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_down() {
+bool Game::move_down() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.y < int(map.size()) - 1 &&
@@ -137,10 +211,12 @@ void Game::move_down() {
     --move_limit;
     ++ch.pos.y;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_left() {
+bool Game::move_left() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.x > 0 &&
@@ -148,10 +224,12 @@ void Game::move_left() {
     --move_limit;
     --ch.pos.x;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_right() {
+bool Game::move_right() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.x < int(map[0].size()) - 1 &&
@@ -159,10 +237,12 @@ void Game::move_right() {
     --move_limit;
     ++ch.pos.x;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_right_up() {
+bool Game::move_right_up() {
   character& ch = characters[turns[0]];
   int moves = diag_moves++ % 2 + 1;
   if (move_limit >= moves &&
@@ -173,10 +253,12 @@ void Game::move_right_up() {
     ++ch.pos.x;
     --ch.pos.y;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_left_up() {
+bool Game::move_left_up() {
   character& ch = characters[turns[0]];
   int moves = diag_moves++ % 2 + 1;
   if (move_limit >= moves &&
@@ -187,10 +269,12 @@ void Game::move_left_up() {
     --ch.pos.x;
     --ch.pos.y;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_right_down() {
+bool Game::move_right_down() {
   character& ch = characters[turns[0]];
   int moves = diag_moves++ % 2 + 1;
   if (move_limit >= moves &&
@@ -201,10 +285,12 @@ void Game::move_right_down() {
     ++ch.pos.x;
     ++ch.pos.y;
     set_focus();
+    return true;
   }
+  return false;
 }
 
-void Game::move_left_down() {
+bool Game::move_left_down() {
   character& ch = characters[turns[0]];
   int moves = diag_moves++ % 2 + 1;
   if (move_limit >= moves &&
@@ -215,5 +301,83 @@ void Game::move_left_down() {
     --ch.pos.x;
     ++ch.pos.y;
     set_focus();
+    return true;
+  }
+  return false;
+}
+
+bool Game::move_random() {
+  srand(clock());
+  switch (rand() % 8) {
+  case 0:
+    return move_up();
+  case 1:
+    return move_down();
+  case 2:
+    return move_left();
+  case 3:
+    return move_right();
+  case 4:
+    return move_right_up();
+  case 5:
+    return move_right_down();
+  case 6:
+    return move_left_up();
+  case 7:
+    return move_left_down();
+  default:
+    break;
+  }
+  return false;
+}
+
+vector<size_t> Game::attack_range() {
+  vector<size_t> list;
+  const character& ch1 = characters[turns[0]];
+  for (size_t i = 0; i < characters.size(); ++i) {
+    // ignore self
+    if (i == turns[0]) {
+      continue;
+    }
+    const character& ch2 = characters[i];
+
+    // no friendly fire
+    if (ch1.is_playable == ch2.is_playable) {
+      continue;
+    }
+
+    double dist_x = abs(double(ch1.pos.x) - ch2.pos.x);
+    double dist_y = abs(double(ch1.pos.y) - ch2.pos.y);
+    int dist = pow(dist_x * dist_x + dist_y * dist_y, 0.5) + 0.5;
+    if (dist <= ch1.range) {
+      list.push_back(i);
+    }
+  }
+  return list;
+}
+
+void Game::attack(size_t i) {
+  const character& ch1 = characters[turns[0]];
+  character& ch2 = characters[i];
+  int att_mod = 1;
+  if (ch1.stats.strength > 18) {
+    att_mod = 4;
+  }
+  srand(clock());
+  ch2.hp -= rand() % ch1.damage + att_mod;
+
+  // if character attacked has no more HP, remove it
+  if (ch2.hp <= 0) {
+    characters.erase(characters.begin() + i);
+    for (size_t j = 0; j < turns.size(); ++j) {
+      if (turns[j] == i) {
+        turns.erase(turns.begin() + j);
+      }
+    }
+    for (size_t j = 0; j < turns.size(); ++j) {
+      if (turns[j] > i) {
+        --turns[j];
+      }
+    }
   }
 }

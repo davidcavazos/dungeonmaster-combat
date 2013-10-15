@@ -23,9 +23,16 @@ typedef struct {
   bool is_playable;
   int base_start;
   int base_size;
+  int hp;
+  int hp_max;
   statistics stats;
   position pos;
   int move_limit;
+  int attack_bonus;
+  int critical;
+  int range;
+  int ammo;
+  int damage;
 } character;
 
 #endif // CHARACTER_HPP
