@@ -155,14 +155,28 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
     case SDLK_9:
       if (d.is_edit_mode && g.map[g.focus_y][g.focus_x] != 3) {
         bool found = false;
+        size_t idx = 0;
         for (size_t i = 0; i < g.characters.size(); ++i) {
           const character& ch = g.characters[i];
           if (ch.pos.x == g.focus_x && ch.pos.y == g.focus_y) {
             found = true;
+            idx = i;
             break;
           }
         }
-        if (!found) {
+        if (found) {
+          g.characters.erase(g.characters.begin() + idx);
+          for (size_t i = 0; i < g.turns.size(); ++i) {
+            if (g.turns[i] == idx) {
+              g.turns.erase(g.turns.begin() + i);
+            }
+          }
+          for (size_t i = 0; i < g.turns.size(); ++i) {
+            if (g.turns[i] > idx) {
+              --g.turns[i];
+            }
+          }
+        } else {
           g.turns.push_back(g.characters.size());
           g.characters.push_back(g.generate_enemy(0, g.focus_x, g.focus_y));
         }

@@ -33,7 +33,7 @@ const Uint8 BG_B = 0x08;
 const Uint8 BG_A = 0xff;
 const SDL_Color BG_COLOR = {BG_R, BG_G, BG_B, BG_A};
 
-#define PLAY_MUSIC
+//#define PLAY_MUSIC
 const char* MUSIC_FILE = "assets/audio/df_music.ogg";
 const int AUDIO_FREQUENCY = 44100;
 const int AUDIO_CHANNELS = 2; // stereo

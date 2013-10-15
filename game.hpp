@@ -23,6 +23,7 @@ public:
        const std::string& ch_file, const std::string& en_file);
   void load_map(const std::string& file);
   character generate_enemy(size_t idx, int x, int y);
+  bool is_tile_occupied(int x, int y);
   void set_focus();
   void end_turn();
   bool move_up();

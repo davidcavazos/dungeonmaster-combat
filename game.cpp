@@ -162,6 +162,16 @@ character Game::generate_enemy(size_t idx, int x, int y) {
   return ch;
 }
 
+bool Game::is_tile_occupied(int x, int y) {
+  for (size_t i = 0; i < characters.size(); ++i) {
+    const character& ch = characters[i];
+    if (ch.pos.x == x && ch.pos.y == y) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void Game::set_focus() {
   const int DIST = 1;
   int x = characters[turns[0]].pos.x;
@@ -194,7 +204,8 @@ bool Game::move_up() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x]].is_walkable) {
+      materials[map[ch.pos.y-1][ch.pos.x]].is_walkable &&
+      !is_tile_occupied(ch.pos.x, ch.pos.y - 1)) {
     --move_limit;
     --ch.pos.y;
     set_focus();
@@ -207,7 +218,8 @@ bool Game::move_down() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x]].is_walkable) {
+      materials[map[ch.pos.y+1][ch.pos.x]].is_walkable &&
+      !is_tile_occupied(ch.pos.x, ch.pos.y + 1)) {
     --move_limit;
     ++ch.pos.y;
     set_focus();
@@ -220,7 +232,8 @@ bool Game::move_left() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.x > 0 &&
-      materials[map[ch.pos.y][ch.pos.x-1]].is_walkable) {
+      materials[map[ch.pos.y][ch.pos.x-1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x - 1, ch.pos.y)) {
     --move_limit;
     --ch.pos.x;
     set_focus();
@@ -233,7 +246,8 @@ bool Game::move_right() {
   character& ch = characters[turns[0]];
   if (move_limit > 0 &&
       ch.pos.x < int(map[0].size()) - 1 &&
-      materials[map[ch.pos.y][ch.pos.x+1]].is_walkable) {
+      materials[map[ch.pos.y][ch.pos.x+1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x + 1, ch.pos.y)) {
     --move_limit;
     ++ch.pos.x;
     set_focus();
@@ -248,7 +262,8 @@ bool Game::move_right_up() {
   if (move_limit >= moves &&
       ch.pos.x < int(map[0].size()) - 1 &&
       ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x+1]].is_walkable) {
+      materials[map[ch.pos.y-1][ch.pos.x+1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x + 1, ch.pos.y - 1)) {
     move_limit -= moves;
     ++ch.pos.x;
     --ch.pos.y;
@@ -264,7 +279,8 @@ bool Game::move_left_up() {
   if (move_limit >= moves &&
       ch.pos.x > 0 &&
       ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x-1]].is_walkable) {
+      materials[map[ch.pos.y-1][ch.pos.x-1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x - 1, ch.pos.y - 1)) {
     move_limit -= moves;
     --ch.pos.x;
     --ch.pos.y;
@@ -280,7 +296,8 @@ bool Game::move_right_down() {
   if (move_limit >= moves &&
       ch.pos.x < int(map[0].size()) - 1 &&
       ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x+1]].is_walkable) {
+      materials[map[ch.pos.y+1][ch.pos.x+1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x + 1, ch.pos.y + 1)) {
     move_limit -= moves;
     ++ch.pos.x;
     ++ch.pos.y;
@@ -296,7 +313,8 @@ bool Game::move_left_down() {
   if (move_limit >= moves &&
       ch.pos.x > 0 &&
       ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x-1]].is_walkable) {
+      materials[map[ch.pos.y+1][ch.pos.x-1]].is_walkable &&
+      !is_tile_occupied(ch.pos.x - 1, ch.pos.y + 1)) {
     move_limit -= moves;
     --ch.pos.x;
     ++ch.pos.y;
@@ -340,7 +358,6 @@ vector<size_t> Game::attack_range() {
       continue;
     }
     const character& ch2 = characters[i];
-
     // no friendly fire
     if (ch1.is_playable == ch2.is_playable) {
       continue;

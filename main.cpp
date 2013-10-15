@@ -15,7 +15,7 @@ const int FRAME_CAP = 60;
 const int FRAME_CAP_MS = 1000 / FRAME_CAP;
 
 const string MATERIALS_FILENAME = "assets/materials";
-const string MAP_FILENAME = "assets/map1";
+const string MAP_FILENAME = "assets/map2";
 const string CHARACTERS_FILENAME = "assets/characters";
 const string ENEMIES_FILENAME = "assets/enemies";
 
