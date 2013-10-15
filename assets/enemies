@@ -1,0 +1,2 @@
+#name,image,                               is_playable,base_start,base_size,hp,hp_max,str,dex,con,int,wis,cha,move_limit,att_bonus,critical,range,ammo,damage
+Ghast,assets/monsters/ghast.png,           0,          32,        1,        18,18,    12, 14, 12, 0,  17, 15, 1000,      3,        2,       1,    1,   8
