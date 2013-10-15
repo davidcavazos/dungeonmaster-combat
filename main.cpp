@@ -14,6 +14,8 @@ const int SCREEN_HEIGHT = 768;
 const int FRAME_CAP = 60;
 const int FRAME_CAP_MS = 1000 / FRAME_CAP;
 
+const int AI_UPDATE = 10; // in frames
+
 const string MATERIALS_FILENAME = "assets/materials";
 const string MAP_FILENAME = "assets/map2";
 const string CHARACTERS_FILENAME = "assets/characters";
@@ -43,6 +45,7 @@ int main(int, char**) {
       process_ai(g);
     }
 
+    // draw to screen
     dev.draw_game(g);
 
     // control framerate
