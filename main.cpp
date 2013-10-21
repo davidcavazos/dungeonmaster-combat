@@ -37,7 +37,6 @@ int main(int, char**) {
   bool is_running = true;
   while (is_running) {
     start_time = dev.get_time();
-    dev.clear_screen();
 
     // game logic
     is_running = dev.process_events(g);
@@ -46,7 +45,9 @@ int main(int, char**) {
     }
 
     // draw to screen
+    dev.clear_screen();
     dev.draw_game(g);
+    draw_ai(dev, g);
 
     // control framerate
     delta_time = dev.get_time() - start_time;

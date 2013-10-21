@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include "ai.hpp"
 #include "device.hpp"
 #include "material.hpp"
 
@@ -155,14 +156,37 @@ void Game::load_map(const string& file) {
   fclose(f);
 }
 
-character Game::generate_enemy(size_t idx, int x, int y) {
+character Game::generate_enemy(size_t enemy_idx, int x, int y) {
   static int count = 0;
   character ch;
-  ch = enemies[idx];
+  ch = enemies[enemy_idx];
   ch.name += to_string(++count);
   ch.pos.x = x;
   ch.pos.y = y;
   return ch;
+}
+
+size_t Game::create_enemy(size_t enemy_idx, int x, int y) {
+  size_t idx = characters.size();
+  turns.push_back(idx);
+  characters.push_back(generate_enemy(enemy_idx, x, y));
+  create_character_ai(*this, idx);
+  return idx;
+}
+
+void Game::delete_character(size_t idx) {
+  delete_character_ai(*this, idx);
+  characters.erase(characters.begin() + idx);
+  for (size_t i = 0; i < turns.size(); ++i) {
+    if (turns[i] == idx) {
+      turns.erase(turns.begin() + i);
+    }
+  }
+  for (size_t i = 0; i < turns.size(); ++i) {
+    if (turns[i] > idx) {
+      --turns[i];
+    }
+  }
 }
 
 bool Game::is_tile_occupied(int x, int y) {
@@ -203,153 +227,34 @@ void Game::end_turn() {
   diag_moves = 0;
 }
 
-bool Game::move_up() {
+bool Game::can_move(int dx, int dy, bool obstacles) {
   character& ch = characters[turns[0]];
-  if (move_limit > 0 &&
-      ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x]].is_walkable &&
-      !is_tile_occupied(ch.pos.x, ch.pos.y - 1)) {
-    --move_limit;
-    --ch.pos.y;
-    set_focus();
-    return true;
+  int x0 = ch.pos.x;
+  int y0 = ch.pos.y;
+  int x1 = x0 + dx;
+  int y1 = y0 + dy;
+  if (x1 < 0 ||
+      x1 >= int(map[0].size()) ||
+      y1 >= int(map.size()) ||
+      y1 < 0 ||
+      (obstacles && !materials[map[y1][x1]].is_walkable) ||
+      (obstacles && is_tile_occupied(x1, y1))) {
+    return false;
   }
-  return false;
+  return true;
 }
 
-bool Game::move_down() {
+bool Game::move(int dx, int dy) {
   character& ch = characters[turns[0]];
-  if (move_limit > 0 &&
-      ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x]].is_walkable &&
-      !is_tile_occupied(ch.pos.x, ch.pos.y + 1)) {
-    --move_limit;
-    ++ch.pos.y;
-    set_focus();
-    return true;
+  int moves = dx != 0 && dy != 0 ? diag_moves++ % 2 + 1 : 1;
+  if (moves >= move_limit || !can_move(dx, dy, true)) {
+    return false;
   }
-  return false;
-}
-
-bool Game::move_left() {
-  character& ch = characters[turns[0]];
-  if (move_limit > 0 &&
-      ch.pos.x > 0 &&
-      materials[map[ch.pos.y][ch.pos.x-1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x - 1, ch.pos.y)) {
-    --move_limit;
-    --ch.pos.x;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_right() {
-  character& ch = characters[turns[0]];
-  if (move_limit > 0 &&
-      ch.pos.x < int(map[0].size()) - 1 &&
-      materials[map[ch.pos.y][ch.pos.x+1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x + 1, ch.pos.y)) {
-    --move_limit;
-    ++ch.pos.x;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_right_up() {
-  character& ch = characters[turns[0]];
-  int moves = diag_moves++ % 2 + 1;
-  if (move_limit >= moves &&
-      ch.pos.x < int(map[0].size()) - 1 &&
-      ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x+1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x + 1, ch.pos.y - 1)) {
-    move_limit -= moves;
-    ++ch.pos.x;
-    --ch.pos.y;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_left_up() {
-  character& ch = characters[turns[0]];
-  int moves = diag_moves++ % 2 + 1;
-  if (move_limit >= moves &&
-      ch.pos.x > 0 &&
-      ch.pos.y > 0 &&
-      materials[map[ch.pos.y-1][ch.pos.x-1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x - 1, ch.pos.y - 1)) {
-    move_limit -= moves;
-    --ch.pos.x;
-    --ch.pos.y;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_right_down() {
-  character& ch = characters[turns[0]];
-  int moves = diag_moves++ % 2 + 1;
-  if (move_limit >= moves &&
-      ch.pos.x < int(map[0].size()) - 1 &&
-      ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x+1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x + 1, ch.pos.y + 1)) {
-    move_limit -= moves;
-    ++ch.pos.x;
-    ++ch.pos.y;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_left_down() {
-  character& ch = characters[turns[0]];
-  int moves = diag_moves++ % 2 + 1;
-  if (move_limit >= moves &&
-      ch.pos.x > 0 &&
-      ch.pos.y < int(map.size()) - 1 &&
-      materials[map[ch.pos.y+1][ch.pos.x-1]].is_walkable &&
-      !is_tile_occupied(ch.pos.x - 1, ch.pos.y + 1)) {
-    move_limit -= moves;
-    --ch.pos.x;
-    ++ch.pos.y;
-    set_focus();
-    return true;
-  }
-  return false;
-}
-
-bool Game::move_random() {
-  srand(clock());
-  switch (rand() % 8) {
-  case 0:
-    return move_up();
-  case 1:
-    return move_down();
-  case 2:
-    return move_left();
-  case 3:
-    return move_right();
-  case 4:
-    return move_right_up();
-  case 5:
-    return move_right_down();
-  case 6:
-    return move_left_up();
-  case 7:
-    return move_left_down();
-  default:
-    break;
-  }
-  return false;
+  move_limit -= moves;
+  ch.pos.x += dx;
+  ch.pos.y += dy;
+  set_focus();
+  return true;
 }
 
 vector<size_t> Game::attack_range() {
@@ -376,9 +281,9 @@ vector<size_t> Game::attack_range() {
   return list;
 }
 
-void Game::attack(size_t i) {
+void Game::attack(size_t idx) {
   const character& ch1 = characters[turns[0]];
-  character& ch2 = characters[i];
+  character& ch2 = characters[idx];
   int att_mod = 1;
   if (ch1.stats.strength > 18) {
     att_mod = 4;
@@ -396,16 +301,6 @@ void Game::attack(size_t i) {
   // if character attacked has no more HP, remove it
   if (ch2.hp <= 0) {
     printf("%s died\n", ch2.name.c_str());
-    characters.erase(characters.begin() + i);
-    for (size_t j = 0; j < turns.size(); ++j) {
-      if (turns[j] == i) {
-        turns.erase(turns.begin() + j);
-      }
-    }
-    for (size_t j = 0; j < turns.size(); ++j) {
-      if (turns[j] > i) {
-        --turns[j];
-      }
-    }
+    delete_character(idx);
   }
 }

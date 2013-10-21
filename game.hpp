@@ -22,19 +22,14 @@ public:
   Game(Device& dev, const std::string& mat_file, const std::string& map_file,
        const std::string& ch_file, const std::string& en_file);
   void load_map(const std::string& file);
-  character generate_enemy(size_t idx, int x, int y);
+  character generate_enemy(size_t enemy_idx, int x, int y);
+  size_t create_enemy(size_t enemy_idx, int x, int y);
+  void delete_character(size_t idx);
   bool is_tile_occupied(int x, int y);
   void set_focus();
   void end_turn();
-  bool move_up();
-  bool move_down();
-  bool move_left();
-  bool move_right();
-  bool move_left_up();
-  bool move_right_up();
-  bool move_left_down();
-  bool move_right_down();
-  bool move_random();
+  bool can_move(int dx, int dy, bool obstacles = true);
+  bool move(int dx, int dy);
   std::vector<size_t> attack_range();
   void attack(size_t i);
 };

@@ -6,6 +6,8 @@
 #include <SDL/SDL.h>
 #include "game.hpp"
 
+extern int g_ai_update;
+
 inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
   switch (e.type) {
   case SDL_QUIT:
@@ -29,6 +31,12 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
           d.random_obstacles = 20;
         }
       }
+      break;
+    case SDLK_EQUALS:
+      --g_ai_update;
+      break;
+    case SDLK_MINUS:
+      ++g_ai_update;
       break;
     default:
       break;
@@ -68,28 +76,28 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       if (d.is_edit_mode) {
         --g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_up();
+        g.move(0, -1);
       }
       break;
     case SDLK_a: case SDLK_LEFT:
       if (d.is_edit_mode) {
         --g.focus_x;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_left();
+        g.move(-1, 0);
       }
       break;
     case SDLK_s: case SDLK_x: case SDLK_DOWN:
       if (d.is_edit_mode) {
         ++g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_down();
+        g.move(0, 1);
       }
       break;
     case SDLK_d: case SDLK_RIGHT:
       if (d.is_edit_mode) {
         ++g.focus_x;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_right();
+        g.move(1, 0);
       }
       break;
     // diagonal movements
@@ -98,7 +106,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         --g.focus_x;
         --g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_left_up();
+        g.move(-1, -1);
       }
       break;
     case SDLK_e:
@@ -106,7 +114,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         ++g.focus_x;
         --g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_right_up();
+        g.move(1, -1);
       }
       break;
     case SDLK_z:
@@ -114,7 +122,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         --g.focus_x;
         ++g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_left_down();
+        g.move(-1, 1);
       }
       break;
     case SDLK_c:
@@ -122,7 +130,7 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         ++g.focus_x;
         ++g.focus_y;
       } else if (g.characters[g.turns[0]].is_playable) {
-        g.move_right_down();
+        g.move(1, 1);
       }
       break;
     // other keys
@@ -165,20 +173,9 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
           }
         }
         if (found) {
-          g.characters.erase(g.characters.begin() + idx);
-          for (size_t i = 0; i < g.turns.size(); ++i) {
-            if (g.turns[i] == idx) {
-              g.turns.erase(g.turns.begin() + i);
-            }
-          }
-          for (size_t i = 0; i < g.turns.size(); ++i) {
-            if (g.turns[i] > idx) {
-              --g.turns[i];
-            }
-          }
+          g.delete_character(idx);
         } else {
-          g.turns.push_back(g.characters.size());
-          g.characters.push_back(g.generate_enemy(0, g.focus_x, g.focus_y));
+          g.create_enemy(0, g.focus_x, g.focus_y);
         }
       }
       break;

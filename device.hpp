@@ -30,6 +30,8 @@ public:
   void draw_game(const Game& g);
   void render();
   void randomize_map(Game& g);
+  int pos_x(const Game& g, int x);
+  int pos_y(const Game& g, int y);
 
 private:
   int _width;
@@ -37,9 +39,6 @@ private:
   std::vector<SDL_Texture*> _textures;
   std::map<std::string,size_t> _textures_idx;
   std::map<std::string,size_t> _texts_idx;
-
-  int pos_x(const Game& g, int x);
-  int pos_y(const Game& g, int y);
 };
 
 #endif // DEVICE_HPP

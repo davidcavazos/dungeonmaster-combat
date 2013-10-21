@@ -3,11 +3,46 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
+#include <algorithm>
+#include <map>
+#include <vector>
+#include "device.hpp"
 #include "game.hpp"
 
 using namespace std;
 
-const int AI_UPDATE = 10; // in frames
+int g_ai_update = 10; // in frames
+
+const int AI_FLG = 5;
+
+// low intelligence AI
+map<size_t, vector<vector<int> > > g_ch_map_flags;
+
+void create_character_ai(Game& g, size_t idx) {
+  const character& ch = g.characters[idx];
+  if (ch.stats.intelligence <= 5) {
+    auto it = g_ch_map_flags.find(idx);
+    if (it == g_ch_map_flags.end()) {
+      vector<vector<int> > map_flags(g.map.size());
+      for (size_t i = 0; i < map_flags.size(); ++i) {
+        map_flags[i].resize(g.map[0].size());
+      }
+      g_ch_map_flags.insert(make_pair(idx, map_flags));
+      puts("Created low intelligence AI");
+    }
+  }
+}
+
+void delete_character_ai(Game& g, size_t idx) {
+  const character& ch = g.characters[idx];
+  if (ch.stats.intelligence <= 5) {
+    auto it = g_ch_map_flags.find(idx);
+    if (it != g_ch_map_flags.end()) {
+      g_ch_map_flags.erase(it);
+      puts("Deleted low intelligence AI");
+    }
+  }
+}
 
 size_t nearest_character(Game& g) {
   size_t nearest = 0;
@@ -39,54 +74,43 @@ void bresenham(Game& g) {
   size_t nearest = nearest_character(g);
   const character& ch1 = g.characters[g.turns[0]];
   const character& ch2 = g.characters[nearest];
+
   int x0 = ch1.pos.x;
   int y0 = ch1.pos.y;
-  int x1 = ch2.pos.x;
-  int y1 = ch2.pos.y;
+  int destx = ch2.pos.x;
+  int desty = ch2.pos.y;
 
-  bool left = x0 > x1 ? true : false;
-  bool down = y0 < y1 ? true : false;
-
-  int dx = abs(x1 - x0);
-  int dy = abs(y1 - y0);
+  int dx = abs(destx - x0);
+  int dy = abs(desty - y0);
   int err = (dx > dy ? dx : -dy) / 2;
 
-  bool move_x = err > -dx ? true : false;
-  bool move_y = err <  dy ? true : false;
+  dx = err > -dx ? destx > x0 ? 1 : -1 : 0;
+  dy = err <  dy ? desty > y0 ? 1 : -1 : 0;
 
+  auto& map_flags = g_ch_map_flags.find(g.turns[0])->second;
   bool moved = false;
-  if (move_x && move_y) {
-    if (down) {
-      if (left) {
-        moved = g.move_left_down();
-      } else {
-        moved = g.move_right_down();
-      }
-    } else {
-      if (left) {
-        moved = g.move_left_up();
-      } else {
-        moved = g.move_right_up();
-      }
-    }
-  } else if (move_x) {
-    if (left) {
-      moved = g.move_left();
-    } else {
-      moved = g.move_right();
-    }
-  } else if (move_y) {
-    if (down) {
-      moved = g.move_down();
-    } else {
-      moved = g.move_up();
+  if (g.can_move(dx, dy, false)) {
+    if (rand() % AI_FLG >= map_flags[y0+dy][x0+dx]) {
+      moved = g.move(dx, dy);
     }
   }
+  if (moved) {
+    return;
+  }
 
-  // if reached obstacle
-  if (!moved) {
-    // try a random movement until a valid move
-    while (!g.move_random()) {
+  vector<int> neighbors = {0,1,2,3,5,6,7,8};
+  random_shuffle(neighbors.begin(), neighbors.end());
+  for (size_t i = 0; i < neighbors.size(); ++i) {
+    dx = neighbors[i] % 3 - 1;
+    dy = neighbors[i] / 3 - 1;
+    if (g.can_move(dx, dy, false)) {
+      if (rand() % AI_FLG >= map_flags[y0+dy][x0+dx]) {
+        moved = g.move(dx, dy);
+        if (moved) {
+          ++map_flags[y0][x0];
+          break;
+        }
+      }
     }
   }
 }
@@ -96,9 +120,10 @@ void process_ai(Game& g) {
   bool can_take_actions = false;
   vector<size_t> list;
   character& ch = g.characters[g.turns[0]];
-  if (!ch.is_playable && ai_frame++ >= AI_UPDATE) {
+  if (!ch.is_playable && ai_frame++ >= g_ai_update) {
     ai_frame = 0;
 
+    srand(clock());
     list = g.attack_range();
     if (list.empty()) {
       // movement depending on intelligence
@@ -115,6 +140,29 @@ void process_ai(Game& g) {
     if (can_take_actions) {
     } else if (g.move_limit <= 0) {
       g.end_turn();
+    }
+  }
+}
+
+void draw_ai(Device& d, Game& g) {
+  size_t idx = g.turns[0];
+  const character& ch = g.characters[idx];
+  if (ch.is_playable) {
+    return;
+  }
+
+  if (ch.stats.intelligence <= 5) {
+    auto it = g_ch_map_flags.find(idx);
+    if (it != g_ch_map_flags.end()) {
+      auto& map_flags = it->second;
+      for (size_t y = 0; y < map_flags.size(); ++y) {
+        for (size_t x = 0; x < map_flags[0].size(); ++x) {
+          if (!g.materials[g.map[y][x]].is_walkable) {
+            continue;
+          }
+          d.draw_text(d.pos_x(g,x), d.pos_y(g,y), to_string(map_flags[y][x]));
+        }
+      }
     }
   }
 }

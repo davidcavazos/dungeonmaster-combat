@@ -39,6 +39,8 @@ const int AUDIO_FREQUENCY = 44100;
 const int AUDIO_CHANNELS = 2; // stereo
 const int AUDIO_BUFFER_SIZE = 4096;
 
+extern int g_ai_update;
+
 SDL_Window* g_win;
 SDL_Renderer* g_renderer;
 TTF_Font* g_font;
@@ -74,6 +76,7 @@ Device::Device(const int screen_w, const int screen_h) {
     exit(EXIT_FAILURE);
   }
 
+#ifdef PLAY_MUSIC
   puts("Initializing audio");
   if (Mix_OpenAudio(AUDIO_FREQUENCY, MIX_DEFAULT_FORMAT, AUDIO_CHANNELS,
                 AUDIO_BUFFER_SIZE) != 0) {
@@ -84,10 +87,9 @@ Device::Device(const int screen_w, const int screen_h) {
   if (g_music == NULL) {
     fprintf(stderr, "%s (%s)\n", SDL_GetError(), MUSIC_FILE);
   } else {
-#ifdef PLAY_MUSIC
     Mix_PlayMusic(g_music, -1);
-#endif
   }
+#endif
 
   puts("Creating window");
   g_win = SDL_CreateWindow("Dungeon Master by David Cavazos", 300, 20,
@@ -118,10 +120,12 @@ Device::~Device() {
   puts("Destroying window");
   SDL_DestroyWindow(g_win);
 
+#ifdef PLAY_MUSIC
   puts("Closing audio");
   Mix_HaltMusic();
   Mix_FreeMusic(g_music);
   Mix_CloseAudio();
+#endif
 
   puts("Quitting TTF");
   TTF_CloseFont(g_font);
@@ -311,24 +315,25 @@ void Device::draw_game(const Game& g) {
   }
 
   // draw info
-  draw_text(10, 45, "[ESC]      Exit");
-  draw_text(10, 65, "[TAB]      Toggle Edit Mode");
+  draw_text(10, 45, "[ESC]  Exit");
+  draw_text(10, 65, "[TAB]  Toggle Edit Mode");
+  draw_text(10, 85, "[+,-]  Modify AI update speed: " + to_string(g_ai_update));
   if (is_edit_mode) {
     draw_text(10,   5, "Mode: Edit");
     draw_text(10,  25, "[W,A,S,D]  Move");
 
-    draw_text(10,  85, "[1]        Grass");
-    draw_text(10, 105, "[2]        Dirt");
-    draw_text(10, 125, "[3]        Stone");
-    draw_text(10, 145, "[4]        Wall");
-    draw_text(10, 165, "[R]        Randomize (" + to_string(random_obstacles) +
+    draw_text(10, 105, "[1]  Grass");
+    draw_text(10, 125, "[2]  Dirt");
+    draw_text(10, 145, "[3]  Stone");
+    draw_text(10, 165, "[4]  Wall");
+    draw_text(10, 185, "[R]  Randomize (" + to_string(random_obstacles) +
               "% obstacles)");
-    draw_text(10, 185, "[J]        Increase obstacles %");
-    draw_text(10, 205, "[K]        Decrease obstacles %");
-    draw_text(10, 225, "[T]        Randomize seed");
-    draw_text(10, 245, "[M]        Read map from file");
-    draw_text(10, 265, "[0]        Place Kibus");
-    draw_text(10, 285, "[9]        Toggle Ghast");
+    draw_text(10, 205, "[J]  Increase obstacles %");
+    draw_text(10, 225, "[K]  Decrease obstacles %");
+    draw_text(10, 245, "[T]  Randomize seed");
+    draw_text(10, 265, "[M]  Read map from file");
+    draw_text(10, 285, "[0]  Place Kibus");
+    draw_text(10, 305, "[9]  Toggle Ghast");
   } else {
     const character& ch = g.characters[g.turns[0]];
     draw_text(400,  5, ch.name);
@@ -336,8 +341,8 @@ void Device::draw_game(const Game& g) {
     draw_text(10,   5, "Mode: Battle");
     draw_text(10,  25, "[W,A,S,D,Q,E,Z,C]  Moves: " + to_string(g.move_limit));
 
-    draw_text(10,  85, "[SPC]      End Turn");
-    draw_text(10, 105, "[RET]      Attack");
+    draw_text(10, 105, "[SPC]  End Turn");
+    draw_text(10, 125, "[RET]  Attack");
   }
 
   // edit mode
