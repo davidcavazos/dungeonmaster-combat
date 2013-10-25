@@ -34,6 +34,9 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
       break;
     case SDLK_EQUALS:
       --g_ai_update;
+      if (g_ai_update < 1) {
+        g_ai_update = 1;
+      }
       break;
     case SDLK_MINUS:
       ++g_ai_update;

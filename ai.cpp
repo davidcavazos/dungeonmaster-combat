@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <deque>
 #include <map>
 #include <vector>
 #include "device.hpp"
@@ -13,10 +14,16 @@ using namespace std;
 
 int g_ai_update = 10; // in frames
 
-const int AI_FLG = 5;
+const int LOW_AI_OBSTACLE = 5;
+const int LOW_AI_MEMORY = 200;
 
 // low intelligence AI
 map<size_t, vector<vector<int> > > g_ch_map_flags;
+typedef struct {
+  int x;
+  int y;
+} pos_x;
+map<size_t, deque<pos_x> > g_ch_map_stack;
 
 void create_character_ai(Game& g, size_t idx) {
   const character& ch = g.characters[idx];
@@ -28,6 +35,7 @@ void create_character_ai(Game& g, size_t idx) {
         map_flags[i].resize(g.map[0].size());
       }
       g_ch_map_flags.insert(make_pair(idx, map_flags));
+      g_ch_map_stack.insert(make_pair(idx, deque<pos_x>()));
       puts("Created low intelligence AI");
     }
   }
@@ -36,11 +44,15 @@ void create_character_ai(Game& g, size_t idx) {
 void delete_character_ai(Game& g, size_t idx) {
   const character& ch = g.characters[idx];
   if (ch.stats.intelligence <= 5) {
-    auto it = g_ch_map_flags.find(idx);
-    if (it != g_ch_map_flags.end()) {
-      g_ch_map_flags.erase(it);
-      puts("Deleted low intelligence AI");
+    auto it1 = g_ch_map_flags.find(idx);
+    if (it1 != g_ch_map_flags.end()) {
+      g_ch_map_flags.erase(it1);
     }
+    auto it2 = g_ch_map_stack.find(idx);
+    if (it2 != g_ch_map_stack.end()) {
+      g_ch_map_stack.erase(it2);
+    }
+    puts("Deleted low intelligence AI");
   }
 }
 
@@ -74,6 +86,8 @@ void bresenham(Game& g) {
   size_t nearest = nearest_character(g);
   const character& ch1 = g.characters[g.turns[0]];
   const character& ch2 = g.characters[nearest];
+  auto& map_flags = g_ch_map_flags.find(g.turns[0])->second;
+  auto& memstack = g_ch_map_stack.find(g.turns[0])->second;
 
   int x0 = ch1.pos.x;
   int y0 = ch1.pos.y;
@@ -87,31 +101,45 @@ void bresenham(Game& g) {
   dx = err > -dx ? destx > x0 ? 1 : -1 : 0;
   dy = err <  dy ? desty > y0 ? 1 : -1 : 0;
 
-  auto& map_flags = g_ch_map_flags.find(g.turns[0])->second;
+  // try to move in straight line
   bool moved = false;
   if (g.can_move(dx, dy, false)) {
-    if (rand() % AI_FLG >= map_flags[y0+dy][x0+dx]) {
+    if (rand() % LOW_AI_OBSTACLE >= map_flags[y0+dy][x0+dx]) {
       moved = g.move(dx, dy);
     }
+  }
+  // forget oldest memory
+  static bool is_forgetting = false;
+  if (is_forgetting && !memstack.empty()) {
+    auto pos = memstack.back();
+    --map_flags[pos.y][pos.x];
+    memstack.pop_back();
+    is_forgetting = false;
   }
   if (moved) {
     return;
   }
 
+  // try to move randomly
   vector<int> neighbors = {0,1,2,3,5,6,7,8};
   random_shuffle(neighbors.begin(), neighbors.end());
   for (size_t i = 0; i < neighbors.size(); ++i) {
     dx = neighbors[i] % 3 - 1;
     dy = neighbors[i] / 3 - 1;
     if (g.can_move(dx, dy, false)) {
-      if (rand() % AI_FLG >= map_flags[y0+dy][x0+dx]) {
+      if (rand() % LOW_AI_OBSTACLE >= map_flags[y0+dy][x0+dx]) {
         moved = g.move(dx, dy);
         if (moved) {
           ++map_flags[y0][x0];
-          break;
+          // stack to memory
+          memstack.push_back({x0, y0});
+          return;
         }
       }
     }
+  }
+  if (!moved) {
+    is_forgetting = true;
   }
 }
 
@@ -138,7 +166,7 @@ void process_ai(Game& g) {
     }
 
     if (can_take_actions) {
-    } else if (g.move_limit <= 0) {
+    } else if (g.move_limit == 0) {
       g.end_turn();
     }
   }

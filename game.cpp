@@ -246,14 +246,27 @@ bool Game::can_move(int dx, int dy, bool obstacles) {
 
 bool Game::move(int dx, int dy) {
   character& ch = characters[turns[0]];
-  int moves = dx != 0 && dy != 0 ? diag_moves++ % 2 + 1 : 1;
-  if (moves >= move_limit || !can_move(dx, dy, true)) {
+  if (!can_move(dx, dy, true)) {
     return false;
   }
-  move_limit -= moves;
-  ch.pos.x += dx;
-  ch.pos.y += dy;
-  set_focus();
+  if (move_limit < 0) {
+    ch.pos.x += dx;
+    ch.pos.y += dy;
+    set_focus();
+    return true;
+  } else {
+    int moves = dx != 0 && dy != 0 ? diag_moves % 2 + 1 : 1;
+    if (moves > move_limit) {
+      return false;
+    }
+    if (dx != 0 && dy != 0) {
+      ++diag_moves;
+    }
+    move_limit -= moves;
+    ch.pos.x += dx;
+    ch.pos.y += dy;
+    set_focus();
+  }
   return true;
 }
 
