@@ -2,7 +2,7 @@
 
 cd ..
 PARENT=$(pwd)
-SRC_DIR=$PARENT/dungeonmaster
+SRC_DIR=$PARENT/dungeonmaster-combat
 BUILD_DIR=$SRC_DIR/build
 
 if [ ! -d $BUILD_DIR ]; then
@@ -10,4 +10,4 @@ if [ ! -d $BUILD_DIR ]; then
 fi
 cd $BUILD_DIR
 cmake $SRC_DIR
-make -j$(lscpu | grep "^CPU(s):" | grep -o [0-9]* || 1)
+make -j$(grep -c ^processor /proc/cpuinfo)
