@@ -25,14 +25,6 @@ if (NOT SDL2_TTF_FOUND)
   message (FATAL_ERROR "SDL2 ttf required and not found")
 endif(NOT SDL2_TTF_FOUND)
 
-link_libraries(
-  ${SDL2_LIBRARY}
-  ${SDL2_IMAGE_LIBRARY}
-  ${SDL2_MIXER_LIBRARY}
-  ${SDL2_TTF_LIBRARY}
-  SDL2main
-)
-
 add_definitions(-std=c++11 -Wall -Wextra -Wfatal-errors -pedantic -O3)
 
 set(SRC
@@ -43,3 +35,11 @@ set(SRC
 )
 
 add_executable(dungeonmaster WIN32 MACOSX_BUNDLE ${SRC})
+
+target_link_libraries(
+  dungeonmaster
+  ${SDL2_LIBRARY}
+  ${SDL2_IMAGE_LIBRARY}
+  ${SDL2_MIXER_LIBRARY}
+  ${SDL2_TTF_LIBRARY}
+)

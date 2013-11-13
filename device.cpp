@@ -10,6 +10,7 @@
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
 #include "game.hpp"
+#include "ai.hpp"
 #include "material.hpp"
 #include "inputs.hpp"
 
@@ -225,6 +226,15 @@ void Device::draw_text(int x, int y, const string& text) {
   SDL_RenderCopy(g_renderer, tex, NULL, &dest);
 }
 
+void Device::draw_sprite(int x, int y, int image_idx) {
+  SDL_Rect dest;
+  SDL_Texture* tex = _textures[image_idx];
+  SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h);
+  dest.x = x;
+  dest.y = y;
+  SDL_RenderCopy(g_renderer, tex, NULL, &dest);
+}
+
 void Device::draw_game(const Game& g) {
   g_game = &g;
 
@@ -269,6 +279,9 @@ void Device::draw_game(const Game& g) {
     draw_line(i, 0, i, _height, BG_COLOR);
   }
 
+  // draw AI
+  draw_ai(*this, g);
+
   // draw characters
   SDL_Color color;
   vector<size_t> sorted(g.characters.size());
@@ -283,15 +296,12 @@ void Device::draw_game(const Game& g) {
     } else {
       color = {255,0,0,255};
     }
-    SDL_Texture* tex = _textures[ch.image];
-    SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h);
     dest.x = pos_x(g, ch.pos.x);
     dest.y = pos_y(g, ch.pos.y);
     draw_rect(dest.x, dest.y, (TILE_SIZE - 1) * ch.base_size,
               (TILE_SIZE - 1) * ch.base_size, color);
-    dest.x = dest.x - ch.base_start;
-    dest.y = dest.y - dest.h + TILE_SIZE - 2;
-    SDL_RenderCopy(g_renderer, tex, NULL, &dest);
+    draw_sprite(pos_x(g, ch.pos.x) - ch.base_start,
+                pos_y(g, ch.pos.y) - dest.h + TILE_SIZE / 2, ch.image);
 
     // draw HP bar
     const int BARH = 7; // health bar height
@@ -334,6 +344,7 @@ void Device::draw_game(const Game& g) {
     draw_text(10, 265, "[M]  Read map from file");
     draw_text(10, 285, "[0]  Place Kibus");
     draw_text(10, 305, "[9]  Toggle Ghast");
+    draw_text(10, 325, "[8]  Toggle Grick");
   } else {
     const character& ch = g.characters[g.turns[0]];
     draw_text(400,  5, ch.name);

@@ -1,2 +1,4 @@
 #name,image,                               is_playable,base_start,base_size,hp,hp_max,ac,str,dex,con,int,wis,cha,move_limit,att_bonus,critical,range,ammo,damage
 Ghast,assets/monsters/ghast.png,           0,          32,        1,        18,18,    10,10, 8,  9,  0,  5,  8,  -1,        4,        2,       1,    1,   6
+Grick,assets/monsters/grick.png,           0,          0,         1,        18,18,    10,10, 8,  9,  8,  5,  8,  -1,        4,        2,       1,    1,   6
+Imp,  assets/monsters/imp.png,             0,          16,        1,        18,18,    10,10, 8,  9,  0,  5,  8,  -1,        4,        2,       1,    1,   6

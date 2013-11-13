@@ -182,6 +182,25 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         }
       }
       break;
+    case SDLK_8:
+      if (d.is_edit_mode && g.map[g.focus_y][g.focus_x] != 3) {
+        bool found = false;
+        size_t idx = 0;
+        for (size_t i = 0; i < g.characters.size(); ++i) {
+          const character& ch = g.characters[i];
+          if (ch.pos.x == g.focus_x && ch.pos.y == g.focus_y) {
+            found = true;
+            idx = i;
+            break;
+          }
+        }
+        if (found) {
+          g.delete_character(idx);
+        } else {
+          g.create_enemy(1, g.focus_x, g.focus_y);
+        }
+      }
+      break;
     case SDLK_r:
       if (d.is_edit_mode) {
         d.randomize_map(g);

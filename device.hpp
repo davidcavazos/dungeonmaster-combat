@@ -27,6 +27,7 @@ public:
   void draw_rect(int x, int y, int w, int h, const SDL_Color& c);
   void draw_fill_rect(int x, int y, int w, int h, const SDL_Color& c);
   void draw_text(int x, int y, const std::string& text);
+  void draw_sprite(int x, int y, int image_idx);
   void draw_game(const Game& g);
   void render();
   void randomize_map(Game& g);

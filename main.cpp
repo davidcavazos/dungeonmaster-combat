@@ -47,7 +47,6 @@ int main(int, char**) {
     // draw to screen
     dev.clear_screen();
     dev.draw_game(g);
-    draw_ai(dev, g);
 
     // control framerate
     delta_time = dev.get_time() - start_time;
