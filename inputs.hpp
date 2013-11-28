@@ -7,6 +7,7 @@
 #include "game.hpp"
 
 extern int g_ai_update;
+extern int g_dijkstra_speed;
 
 inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
   switch (e.type) {
@@ -201,6 +202,25 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         }
       }
       break;
+    case SDLK_7:
+      if (d.is_edit_mode && g.map[g.focus_y][g.focus_x] != 3) {
+        bool found = false;
+        size_t idx = 0;
+        for (size_t i = 0; i < g.characters.size(); ++i) {
+          const character& ch = g.characters[i];
+          if (ch.pos.x == g.focus_x && ch.pos.y == g.focus_y) {
+            found = true;
+            idx = i;
+            break;
+          }
+        }
+        if (found) {
+          g.delete_character(idx);
+        } else {
+          g.create_enemy(3, g.focus_x, g.focus_y);
+        }
+      }
+      break;
     case SDLK_r:
       if (d.is_edit_mode) {
         d.randomize_map(g);
@@ -217,6 +237,22 @@ inline bool process_input(const SDL_Event& e, Device& d, Game& g) {
         std::cout << "Map file: ";
         std::cin >> file;
         g.load_map("assets/" + file);
+      }
+      break;
+    case SDLK_LEFTBRACKET:
+      if (!d.is_edit_mode) {
+        ++g_dijkstra_speed;
+        if (g_dijkstra_speed > 2) {
+          g_dijkstra_speed = 2;
+        }
+      }
+      break;
+    case SDLK_RIGHTBRACKET:
+      if (!d.is_edit_mode) {
+        --g_dijkstra_speed;
+        if (g_dijkstra_speed < 0) {
+          g_dijkstra_speed = 0;
+        }
       }
       break;
     default:

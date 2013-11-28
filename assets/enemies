@@ -2,3 +2,4 @@
 Ghast,assets/monsters/ghast.png,           0,          32,        1,        18,18,    10,10, 8,  9,  0,  5,  8,  -1,        4,        2,       1,    1,   6
 Grick,assets/monsters/grick.png,           0,          0,         1,        18,18,    10,10, 8,  9,  8,  5,  8,  -1,        4,        2,       1,    1,   6
 Imp,  assets/monsters/imp.png,             0,          16,        1,        18,18,    10,10, 8,  9,  0,  5,  8,  -1,        4,        2,       1,    1,   6
+Cockatrice,assets/monsters/cockatrice.png, 0,          32,        1,        30,30,    15,15, 10, 10, 13, 8,  10, -1,        5,        3,       1,    1,   8

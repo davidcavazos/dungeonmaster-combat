@@ -17,9 +17,13 @@ const int FRAME_CAP_MS = 1000 / FRAME_CAP;
 const int AI_UPDATE = 10; // in frames
 
 const string MATERIALS_FILENAME = "assets/materials";
-const string MAP_FILENAME = "assets/map1";
+const string MAP_FILENAME = "assets/map_blank";
 const string CHARACTERS_FILENAME = "assets/characters";
 const string ENEMIES_FILENAME = "assets/enemies";
+
+extern int g_dijkstra_speed;
+extern int g_iterations;
+extern int HIGH_AI_TOTAL_ITERATIONS;
 
 int main(int, char**) {
   printf("Dungeon Master v%d.%d\n", VERSION_MAJOR, VERSION_MINOR);
@@ -42,6 +46,9 @@ int main(int, char**) {
     is_running = dev.process_events(g);
     if (!dev.is_edit_mode) {
       process_ai(g);
+    }
+    if (g_dijkstra_speed < 1 && g_iterations < HIGH_AI_TOTAL_ITERATIONS) {
+      continue;
     }
 
     // draw to screen

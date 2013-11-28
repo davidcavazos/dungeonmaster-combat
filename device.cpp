@@ -41,6 +41,7 @@ const int AUDIO_CHANNELS = 2; // stereo
 const int AUDIO_BUFFER_SIZE = 4096;
 
 extern int g_ai_update;
+int g_dijkstra_speed = 2;
 
 SDL_Window* g_win;
 SDL_Renderer* g_renderer;
@@ -345,6 +346,7 @@ void Device::draw_game(const Game& g) {
     draw_text(10, 285, "[0]  Place Kibus");
     draw_text(10, 305, "[9]  Toggle Ghast");
     draw_text(10, 325, "[8]  Toggle Grick");
+    draw_text(10, 345, "[7]  Toggle Cockatrice");
   } else {
     const character& ch = g.characters[g.turns[0]];
     draw_text(400,  5, ch.name);
@@ -354,6 +356,21 @@ void Device::draw_game(const Game& g) {
 
     draw_text(10, 105, "[SPC]  End Turn");
     draw_text(10, 125, "[RET]  Attack");
+    string speed = "undefined";
+    switch (g_dijkstra_speed) {
+      case 0:
+        speed = "fastest";
+        break;
+      case 1:
+        speed = "by cycle";
+        break;
+      case 2:
+        speed = "by step";
+        break;
+      default:
+        break;
+    }
+    draw_text(10, 145, "[{,}]  Modify Dijkstra speed ("+speed+")");
   }
 
   // edit mode
